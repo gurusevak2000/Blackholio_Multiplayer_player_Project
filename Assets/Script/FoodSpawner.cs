@@ -2,32 +2,43 @@ using UnityEngine;
 
 public class FoodSpawner : MonoBehaviour
 {
+    public static FoodSpawner instance;
+
     public GameObject foodPrefab;
 
     public int foodCount = 30;
 
-    // map boundaries
-    public float minX = -5f;
-    public float maxX = 5f;
+    public float minX = -25f;
+    public float maxX = 25f;
 
-    public float minY = -5f;
-    public float maxY = 5f;
+    public float minY = -25f;
+    public float maxY = 25f;
+
+    private void Awake()
+    {
+        instance = this;
+    }
 
     void Start()
     {
-        SpawnFood();
+        SpawnInitialFood();
     }
 
-    void SpawnFood()
+    void SpawnInitialFood()
     {
         for (int i = 0; i < foodCount; i++)
         {
-            Vector2 randomPosition = new Vector2(
-                Random.Range(minX, maxX),
-                Random.Range(minY, maxY)
-            );
-
-            Instantiate(foodPrefab, randomPosition, Quaternion.identity);
+            SpawnOneFood();
         }
+    }
+
+    public void SpawnOneFood()
+    {
+        Vector2 randomPosition = new Vector2(
+            Random.Range(minX, maxX),
+            Random.Range(minY, maxY)
+        );
+
+        Instantiate(foodPrefab, randomPosition, Quaternion.identity);
     }
 }
