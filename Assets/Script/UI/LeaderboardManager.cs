@@ -17,14 +17,9 @@ public class LeaderboardManager : MonoBehaviour
 
     void UpdateLeaderboard()
     {
-        PlayerMovement[] players =
-            FindObjectsByType<PlayerMovement>(
-                FindObjectsSortMode.None
-            );
-
-        var sortedPlayers = players
-            .Where(p => p != null && !p.isDead)// filter out dead players and null references
-            .OrderByDescending(p => p.size)
+        var sortedPlayers = PlayerMovement.allPlayers
+            .Where(p => p != null && p.currentMatchState == MatchState.Playing)
+            .OrderByDescending(p => p.score)
             .Take(5)
             .ToList();
 
@@ -39,7 +34,7 @@ public class LeaderboardManager : MonoBehaviour
                 ". " +
                 player.playerName +
                 "   " +
-                player.size.ToString("F1") +
+                player.score.ToString() +
                 "\n";
 
             rank++;

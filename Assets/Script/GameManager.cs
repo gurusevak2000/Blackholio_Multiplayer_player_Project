@@ -4,73 +4,115 @@ using UnityEngine.SceneManagement;
 
 public class GameManager : MonoBehaviour
 {
-    public static GameManager instance;
-
-    public GameObject deathPanel;
-    private PlayerMovement localPlayer;
-
-    public TMP_Text scoreText;
-
+    public static GameManager Instance;
+    [Header("UI References")]
+    [SerializeField]
+    private GameObject playerEliminatedPanel;
+    public TMP_Text playerSizeText;
+    private PlayerMovement localPlayerReference;
+    [SerializeField]
+    private GameObject winnerPanel;
+    [SerializeField]
+    private TMP_Text winnerNameText;
     private void Awake()
     {
-        instance = this;
+        Instance = this;
     }
 
     private void Update()
     {
-        if (localPlayer == null)
-        {
-            var players = FindObjectsByType<PlayerMovement>(FindObjectsSortMode.None);
-            foreach (var p in players)
-            {
-                if (p.isLocalPlayer)
-                {
-                    localPlayer = p;
-                    break;
-                }
-            }
-        }
+        FindLocalPlayerIfNeeded();
 
-        if (localPlayer != null && !localPlayer.isDead)
+        UpdatePlayerSizeDisplay();
+
+        //testing the UI 
+        if (Input.GetKeyDown(KeyCode.K))
         {
-            scoreText.text = $"Size: {localPlayer.size:F1}";
-            // dashText.text = ... (for dash feature)
+            ShowWinnerScreen("Player999");
         }
-        UpdateScore();
     }
 
-    void UpdateScore()
-    {
-        PlayerMovement[] players =
-            FindObjectsByType<PlayerMovement>(FindObjectsSortMode.None);
+    // =========================
+    // PLAYER LOOKUP
+    // =========================
 
-        foreach (PlayerMovement player in players)
+    private void FindLocalPlayerIfNeeded()
+    {
+        if (localPlayerReference != null)
+            return;
+
+        foreach (PlayerMovement player in PlayerMovement.allPlayers)
         {
-            if (player.isLocalPlayer)
+            if (player != null && player.isLocalPlayer)
             {
-                scoreText.text = "Size: " + player.size.ToString("F1");
+                localPlayerReference = player;
                 return;
             }
         }
     }
 
-    public void ShowDeathScreen()
+    // =========================
+    // UI UPDATES
+    // =========================
+    private void UpdatePlayerSizeDisplay()
     {
-        deathPanel.SetActive(true);
+        if (localPlayerReference == null)
+            return;
+
+        if (localPlayerReference.currentMatchState != MatchState.Playing)
+            return;
+
+        playerSizeText.text =
+            $"Size: {localPlayerReference.currentSize:F1}";
     }
 
-    public void PlayAgain()
+    // =========================
+    // DEATH SCREEN
+    // =========================
+    public void ShowPlayerEliminatedScreen()
     {
-        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+        playerEliminatedPanel.SetActive(true);
     }
 
-    public void QuitGame()
+    public void HidePlayerEliminatedScreen()
+    {
+        playerEliminatedPanel.SetActive(false);
+    }
+    public void ShowWinnerScreen(string winnerName)
+    {
+        winnerPanel.SetActive(true);
+
+        winnerNameText.text =
+            $"Winner\n{winnerName}";
+    }
+
+    // =========================
+    // SCENE MANAGEMENT
+    // =========================
+    public void RestartCurrentGame()
+    {
+        SceneManager.LoadScene(
+            SceneManager.GetActiveScene().buildIndex
+        );
+    }
+
+    public void LoadMainMenu()
+    {
+        SceneManager.LoadScene("MainMenu");
+    }
+
+    public void ExitApplication()
     {
         Application.Quit();
     }
-
-    public void ReturnToMenu()
+    public void StartSpectating()
     {
-        SceneManager.LoadScene("MainMenu");
+        HidePlayerEliminatedScreen();
+        SpectatorManager.Instance
+            .FindBestPlayerToSpectate();
+        Camera.main
+            .GetComponent<CameraFollow>()
+            .EnableSpectateMode();
+        localPlayerReference.EnterSpectatorMode();
     }
 }

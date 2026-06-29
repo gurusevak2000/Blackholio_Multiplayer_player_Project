@@ -5,30 +5,97 @@ public class CameraFollow : MonoBehaviour
 {
     public Vector3 offset = new Vector3(0, 0, -10);
 
+    [Header("Camera Feel")]
+    public float cameraSmoothing = 6f;
     private Transform target;
 
-    void LateUpdate()
+    private bool isSpectating = false;
+
+    private void LateUpdate()
     {
-        // if no target yet, try find local player
-        if (target == null)
-        {
-            PlayerMovement[] players =
-                FindObjectsByType<PlayerMovement>(FindObjectsSortMode.None);
+        UpdateCameraTarget();
+        FollowCurrentTarget();
+    }
 
-            foreach (PlayerMovement player in players)
-            {
-                if (player.isLocalPlayer)
-                {
-                    target = player.transform;
-                    break;
-                }
-            }
+    // =========================
+    // CAMERA MODE
+    // =========================
+    public void EnableSpectateMode()
+    {
+        isSpectating = true;
+        target = null;
+    }
+    
+    public void DisableSpectateMode()
+    {
+        isSpectating = false;
+        target = null;
+    }
+
+    // =========================
+    // TARGET SELECTION
+    // =========================
+
+    private void UpdateCameraTarget()
+    {
+        if (isSpectating)
+        {
+            UpdateSpectateTarget();
         }
-
-        // follow target
-        if (target != null)
+        else
         {
-            transform.position = target.position + offset;
+            UpdateLocalPlayerTarget();
         }
     }
-}   
+
+    private void UpdateLocalPlayerTarget()
+    {
+        // Already following someone
+        if (target != null)
+            return;
+
+        foreach (PlayerMovement player in PlayerMovement.allPlayers)
+        {
+            if (player != null && player.isLocalPlayer)
+            {
+                target = player.transform;
+                return;
+            }
+        }
+    }
+
+    private void UpdateSpectateTarget()
+    {
+        PlayerMovement spectateTarget = 
+            SpectatorManager.Instance.GetCurrentSpectateTarget();
+
+        if (spectateTarget == null || 
+            spectateTarget.currentMatchState != MatchState.Playing)
+        {
+            SpectatorManager.Instance.FindNewSpectateTarget();
+            spectateTarget = 
+                SpectatorManager.Instance.GetCurrentSpectateTarget();
+        }
+
+        if (spectateTarget != null)
+        {
+            target = spectateTarget.transform;
+        }
+    }
+
+    // =========================
+    // CAMERA MOVEMENT
+    // =========================
+
+    private void FollowCurrentTarget()
+    {   
+        if (target == null) return;
+
+        Vector3 desiredPosition = target.position + offset;
+        transform.position = Vector3.Lerp(
+            transform.position,
+            desiredPosition,
+            Time.deltaTime * cameraSmoothing
+        );
+    }
+}
